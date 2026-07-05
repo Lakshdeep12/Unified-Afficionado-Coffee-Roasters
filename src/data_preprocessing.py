@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 
+from src.path_utils import resolve_dataset_path
+
 def assign_time_bucket(hour):
     """
     Categorize transaction hour into operational shifts.
@@ -175,7 +177,8 @@ def run_preprocessing(raw_path, processed_path, report_path):
     print("--- Preprocessing Pipeline Completed Successfully ---")
 
 if __name__ == "__main__":
-    raw_csv      = r"D:\Unified Afficionado Coffee Roasters\Dataset\Raw dataset\Afficionado Coffee Roasters.xlsx - Transactions.csv"
-    processed_csv = r"D:\Unified Afficionado Coffee Roasters\Dataset\Processed dataset\Afficionado_Coffee_Processed.csv"
-    report_md    = r"D:\Unified Afficionado Coffee Roasters\reports\data_quality_report.md"
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    raw_csv = os.path.join(root, 'Dataset', 'Raw dataset', 'Afficionado Coffee Roasters.xlsx - Transactions.csv')
+    processed_csv = resolve_dataset_path()
+    report_md = os.path.join(root, 'reports', 'data_quality_report.md')
     run_preprocessing(raw_csv, processed_csv, report_md)

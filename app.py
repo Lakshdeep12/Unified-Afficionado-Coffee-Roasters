@@ -5,6 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import os
 
+from src.path_utils import resolve_dataset_path, resolve_raw_data_path
+
 # Set page config first!
 st.set_page_config(
     page_title="Afficionado Coffee Roasters Sales Analytics",
@@ -14,7 +16,7 @@ st.set_page_config(
 )
 
 # Import local engines
-from src.data_preprocessing import assign_time_bucket
+from src.data_preprocessing import assign_time_bucket, run_preprocessing
 from src.kpi_calculations import calculate_kpis, get_store_performance, get_hourly_trends, get_day_of_week_trends
 from src.statistical_analysis import run_all_tests
 from dashboard.components import inject_custom_css, render_kpi_card, render_line_chart, render_area_chart, render_bar_chart, render_heatmap, render_box_violin_plots, render_pie_donut, render_treemap, COLORS
@@ -22,14 +24,26 @@ from dashboard.components import inject_custom_css, render_kpi_card, render_line
 # Inject custom premium stylesheet
 inject_custom_css()
 
-# Define dataset path — absolute path to correct project directory
-PROCESSED_DATA_PATH = r"D:\Unified Afficionado Coffee Roasters\Dataset\Processed dataset\Afficionado_Coffee_Processed.csv"
+# Resolve the dataset path dynamically so the app works in local and deployed environments.
+PROCESSED_DATA_PATH = resolve_dataset_path()
+RAW_DATA_PATH = resolve_raw_data_path()
+REPORT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "reports", "data_quality_report.md")
 
 @st.cache_data
 def load_data():
     if not os.path.exists(PROCESSED_DATA_PATH):
-        st.error(f"Processed dataset not found at: {PROCESSED_DATA_PATH}")
+        if os.path.exists(RAW_DATA_PATH):
+            st.info("Processed dataset missing; generating it from the raw source data...")
+            run_preprocessing(RAW_DATA_PATH, PROCESSED_DATA_PATH, REPORT_PATH)
+        else:
+            st.error(f"Processed dataset not found at: {PROCESSED_DATA_PATH}")
+            st.error(f"Raw data not found at: {RAW_DATA_PATH}")
+            return pd.DataFrame()
+
+    if not os.path.exists(PROCESSED_DATA_PATH):
+        st.error(f"Processed dataset could not be generated at: {PROCESSED_DATA_PATH}")
         return pd.DataFrame()
+
     df = pd.read_csv(PROCESSED_DATA_PATH)
     # Ensure datetime parsing
     df['transaction_date'] = pd.to_datetime(df['transaction_date'])
